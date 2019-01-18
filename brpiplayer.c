@@ -54,6 +54,7 @@ int bplog(FILE *fp, char logMessage[])
 }
 
 int main(int argc, char* argv[])
+{
 
     FILE *fp= NULL;
     fp = fopen ("/home/pi/BRPiPlayer/brpiplayer.log", "a+");
@@ -97,7 +98,7 @@ int main(int argc, char* argv[])
             if (ev.code == 272 && ev.value == 1) {
                 bplog(fp, "* left button pressed");
                 radioPid = system("pidof -x killradio > /dev/null");
-                message = "searching for pid of killradio: ";
+                strcpy(message, "searching for pid of killradio: ");
                 itoa(radioPid, tempstring);
                 strcat(message, tempstring);
                 bplog(fp, message);
@@ -109,7 +110,7 @@ int main(int argc, char* argv[])
                     bplog(fp, "pid not 0 - continue");
                 }
                 xmmsPid = system("pidof -x killxmms > /dev/null");
-                message = "searching for pid of killxmms: ";
+                strcpy(message, "searching for pid of killxmms: ");
                 itoa(xmmsPid, tempstring);
                 strcat(message, tempstring);
                 bplog(fp, message);
@@ -128,7 +129,7 @@ int main(int argc, char* argv[])
             if (ev.code == 273 && ev.value == 1) {
                 bplog(fp, "* right button pressed");
                 xmmsPid = system("pidof -x killxmms > /dev/null");
-                message = "searching for pid of killxmms: ";
+                strcpy(message, "searching for pid of killxmms: ");
                 itoa(xmmsPid, tempstring);
                 strcat(message, tempstring);
                 bplog(fp, message);
@@ -140,7 +141,7 @@ int main(int argc, char* argv[])
                     bplog(fp, "pid not 0 - continue");
                 }
                 radioPid = system("pidof -x killradio > /dev/null");
-                message = "searching for pid of killradio: ";
+                strcpy(message, "searching for pid of killradio: ");
                 itoa(radioPid, tempstring);
                 strcat(message, tempstring);
                 bplog(fp, message);
