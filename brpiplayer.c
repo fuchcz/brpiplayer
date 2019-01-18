@@ -9,23 +9,10 @@
 #include <pthread.h>
 #include <time.h>
 
-
-//void INThandler(){
-//    exit(0);
-//}
-
-//void *myThreadFun(void *vargp)
-//{
-//    sleep(10);
-//    printf("Printing GeeksQuiz from Thread \n");
-//    return NULL;
-//}
-
 void reverse(char s[])
 {
     int i, j;
     char c;
-
     for (i = 0, j = strlen(s)-1; i<j; i++, j--) {
         c = s[i];
         s[i] = s[j];
@@ -33,24 +20,40 @@ void reverse(char s[])
     }
 }
 
-/* itoa:  convert n to characters in s */
 void itoa(int n, char s[])
 {
     int i, sign;
-
-    if ((sign = n) < 0)  /* record sign */
-        n = -n;          /* make n positive */
+    if ((sign = n) < 0)
+        n = -n;
     i = 0;
-    do {       /* generate digits in reverse order */
-        s[i++] = n % 10 + '0';   /* get next digit */
-    } while ((n /= 10) > 0);     /* delete it */
+    do {
+        s[i++] = n % 10 + '0';
+    } while ((n /= 10) > 0);
     if (sign < 0)
         s[i++] = '-';
     s[i] = '\0';
     reverse(s);
 }
 
-int main(int argc, char** argv) {
+int bplog(FILE *fp, char logMessage[])
+{
+
+    char message[400];
+    time_t now = time(NULL);
+    struct tm *timenow;
+
+    timenow = localtime(&now);
+    strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: ", timenow);
+    strcat(message, logMessage);
+    strcat(message, "\n");
+    fprintf(fp, message);
+    fflush(fp);
+
+    return(0);
+
+}
+
+int main(int argc, char* argv[])
 
     FILE *fp= NULL;
     fp = fopen ("/home/pi/BRPiPlayer/brpiplayer.log", "a+");
@@ -59,31 +62,23 @@ int main(int argc, char** argv) {
     char tempstring[400];
     struct tm *timenow;
     time_t now = time(NULL);
-
     int pid;
     int radioPid;
     int xmmsPid;
-
     char radioStart[250];
-    strcpy(radioStart, "/home/pi/BRPiPlayer/radio");
+    strcpy(radioStart, "nohup /usr/bin/mpg321 http://icecast2.play.cz/cropardubice128.mp3 &");
     char radioSleepStart[250];
-    strcpy(radioSleepStart, "/home/pi/BRPiPlayer/killradio 3600");
+    strcpy(radioSleepStart, "nohup /home/pi/BRPiPlayer/killradio 3600 &");
     char radioStop[250];
-    strcpy( radioStop, "killall radio mpg321 killradio");
-
+    strcpy( radioStop, "killall mpg321 killradio");
     char xmmsStart[250];
     strcpy(xmmsStart, "xmms2 play");
     char xmmsSleepStart[250];
-    strcpy(xmmsSleepStart, "/home/pi/BRPiPlayer/killxmms 3600");
+    strcpy(xmmsSleepStart, "nohup /home/pi/BRPiPlayer/killxmms 3600 &");
     char xmmsStop[250];
-    strcpy(xmmsStop, "xmms2 pause");
-    char xmmsStop2[250];
-    strcpy(xmmsStop2, "killall killxmms");
-
+    strcpy(xmmsStop, "xmms2 pause && killall killxmms");
     int bytes;
-
     const char *pDevice = "/dev/input/event0";
-
     char devname[] = "/dev/input/event0";
     int device = open(pDevice, O_RDONLY);
     if(device == -1)
@@ -92,205 +87,88 @@ int main(int argc, char** argv) {
         return -1;
     }
     struct input_event ev;
-
     radioPid = 0;
     xmmsPid = 0;
 
     while (1) {
         bytes = read(device, &ev, sizeof(ev));
+        // left button
         if(bytes > 0) {
             if (ev.code == 272 && ev.value == 1) {
-
-                now = time(NULL);
-                timenow = localtime(&now);
-                strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: * left button pressed\n", timenow);
-                fprintf(fp, message);
-                fflush(fp);
-
-//                printf("# LEFT BUTTON!\n");
+                bplog(fp, "* left button pressed");
                 radioPid = system("pidof -x killradio > /dev/null");
-
-                now = time(NULL);
-                timenow = localtime(&now);
-                strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: searching for pid of killradio: ", timenow);
+                message = "searching for pid of killradio: ";
                 itoa(radioPid, tempstring);
                 strcat(message, tempstring);
-                strcat(message, "\n");
-                fprintf(fp, message);
-                fflush(fp);
-
+                bplog(fp, message);
                 if (radioPid == 0) {
-
-                    now = time(NULL);
-                    timenow = localtime(&now);
-                    strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: pid is 0\n", timenow);
-                    fprintf(fp, message);
-                    strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: # stopping radio\n", timenow);
-                    fprintf(fp, message);
-                    fflush(fp);
-
-//                    printf("stopping radio!\n");
+                    bplog(fp, "pid is 0");
+                    bplog(fp, "# stopping radio");
                     system(radioStop);
                 } else {
-
-                    now = time(NULL);
-                    timenow = localtime(&now);
-                    strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: pid not 0 - continue\n", timenow);
-                    fprintf(fp, message);
-                    fflush(fp);
-
+                    bplog(fp, "pid not 0 - continue");
                 }
                 xmmsPid = system("pidof -x killxmms > /dev/null");
-//                printf("xmmsPid: %d\n", xmmsPid);
-
-                now = time(NULL);
-                timenow = localtime(&now);
-                strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: searching for pid of killxmms: ", timenow);
+                message = "searching for pid of killxmms: ";
                 itoa(xmmsPid, tempstring);
                 strcat(message, tempstring);
-                strcat(message, "\n");
-                fprintf(fp, message);
-                fflush(fp);
-
-
+                bplog(fp, message);
                 if (xmmsPid == 256) {
-//                    printf("starting xmms2\n");
-
-                    now = time(NULL);
-                    timenow = localtime(&now);
-                    strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: pid is 256\n", timenow);
-                    fprintf(fp, message);
-                    strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: # starting xmms\n", timenow);
-                    fprintf(fp, message);
-                    fflush(fp);
-
+                    bplog(fp, "pid is 256");
+                    bplog(fp, "# starting xmms");
                     system(xmmsStart);
                     system(xmmsSleepStart);
                 } else if (xmmsPid == 0) {
-//                    printf("stopping xmms2\n");
-
-                    now = time(NULL);
-                    timenow = localtime(&now);
-                    strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: pid is 0\n", timenow);
-                    fprintf(fp, message);
-                    strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: # stopping xmms\n", timenow);
-                    fprintf(fp, message);
-                    fflush(fp);
-
+                    bplog(fp, "pid is 0");
+                    bplog(fp, "# stopping xmms");
                     system(xmmsStop);
-                    system(xmmsStop2);
                 }
             }
+            // right button
             if (ev.code == 273 && ev.value == 1) {
-//                printf("# RIGHT BUTTON!\n");
-
-                now = time(NULL);
-                timenow = localtime(&now);
-                strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: * right button pressed\n", timenow);
-                fprintf(fp, message);
-                fflush(fp);
-
+                bplog(fp, "* right button pressed");
                 xmmsPid = system("pidof -x killxmms > /dev/null");
-
-                now = time(NULL);
-                timenow = localtime(&now);
-                strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: searching for pid of killxmms: ", timenow);
+                message = "searching for pid of killxmms: ";
                 itoa(xmmsPid, tempstring);
                 strcat(message, tempstring);
-                strcat(message, "\n");
-                fprintf(fp, message);
-                fflush(fp);
-
+                bplog(fp, message);
                 if (xmmsPid == 0) {
-
-                    now = time(NULL);
-                    timenow = localtime(&now);
-                    strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: pid is 0\n", timenow);
-                    fprintf(fp, message);
-                    strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: # stopping xmms\n", timenow);
-                    fprintf(fp, message);
-                    fflush(fp);
-
-//                    printf("stopping xmms2!\n");
+                    bplog(fp, "pid is 0");
+                    bplog(fp, "# stopping xmms");
                     system(xmmsStop);
-                    system(xmmsStop2);
                 } else {
-                    now = time(NULL);
-                    timenow = localtime(&now);
-                    strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: pid not 0 - continue\n", timenow);
-                    fprintf(fp, message);
-                    fflush(fp);
+                    bplog(fp, "pid not 0 - continue");
                 }
                 radioPid = system("pidof -x killradio > /dev/null");
-//                printf("radioPid: %d\n", radioPid);
-
-                now = time(NULL);
-                timenow = localtime(&now);
-                strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: searching for pid of killradio: ", timenow);
+                message = "searching for pid of killradio: ";
                 itoa(radioPid, tempstring);
                 strcat(message, tempstring);
-                strcat(message, "\n");
-                fprintf(fp, message);
-                fflush(fp);
-
+                bplog(fp, message);
                 if (radioPid == 256) {
-//                    printf("starting radio!\n");
-
-                    now = time(NULL);
-                    timenow = localtime(&now);
-                    strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: pid is 256\n", timenow);
-                    fprintf(fp, message);
-                    strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: # starting radio\n", timenow);
-                    fprintf(fp, message);
-                    fflush(fp);
-
+                    bplog(fp, "pid is 256");
+                    bplog(fp, "# starting radio");
                     system(radioStart);
                     system(radioSleepStart);
                 } else if (radioPid == 0) {
-//                    printf("stopping radio!\n");
-
-                    now = time(NULL);
-                    timenow = localtime(&now);
-                    strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: pid is 0\n", timenow);
-                    fprintf(fp, message);
-                    strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: # stopping radio\n", timenow);
-                    fprintf(fp, message);
-                    fflush(fp);
-
+                    bplog(fp, "pid is 0");
+                    bplog(fp, "# stopping radio");
                     system(radioStop);
                 }
             }
+            // middle button
             if (ev.code == 274 && ev.value == 1) {
-//                printf("# MIDDLE BUTTON!\n");
-                now = time(NULL);
-                timenow = localtime(&now);
-                strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: * middle button pressed\n", timenow);
-                fprintf(fp, message);
-                fflush(fp);
+                bplog(fp, "* middle button pressed");
             }
             if (ev.code == 8 && ev.value == -1) {
-//                printf("# WHEEL DOWN!\n");
-                now = time(NULL);
-                timenow = localtime(&now);
-                strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: * moved wheel down \n", timenow);
-                fprintf(fp, message);
-                fflush(fp);
+                bplog(fp, "* moved wheel down");
             }
             if (ev.code == 8 && ev.value == 1) {
-//                printf("# WHEEL UP!\n");
-                now = time(NULL);
-                timenow = localtime(&now);
-                strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: * moved wheel up \n", timenow);
-                fprintf(fp, message);
-                fflush(fp);
+                bplog(fp, "* moved wheel up");
             }
-//            printf("code: %d\n", ev.code);
-//            printf("value: %d\n", ev.value);
-//            printf("---\n");
         }
-//        if (ev.type == 1 && ev.value == 1) {
-//            printf("Key: %i State: %i\n", ev.code, ev.value);
-//        }
     }
     fclose(fp);
+
+    return(0);
+
 }
