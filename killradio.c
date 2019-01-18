@@ -1,58 +1,33 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <string.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+
+int bplog(FILE *fp, char logMessage[])
+{
+
+    char message[400];
+    time_t now = time(NULL);
+    struct tm *timenow;
+
+    timenow = localtime(&now);
+    strftime(message, sizeof(message), "%Y-%m-%d_%H:%M:%S: ", timenow);
+    strcat(message, logMessage);
+    strcat(message, "\n");
+    fprintf(fp, message);
+    fflush(fp);
+    
+	return(0);
+	
+}
 
 int main(int argc, char* argv[])
 {
+    // open log file
     FILE *fp= NULL;
-    pid_t process_id = 0;
-    pid_t sid = 0;
-    // Create child process
-    process_id = fork();
-    // Indication of fork() failure
-    if (process_id < 0)
-    {
-        printf("fork failed!\n");
-        // Return failure in exit status
-        exit(1);
-    }
-    // PARENT PROCESS. Need to kill it.
-    if (process_id > 0)
-    {
-//        printf("process_id of child process %d \n", process_id);
-        // return success in exit status
-        exit(0);
-    }
-    //unmask the file mode
-    umask(0);
-    //set new session
-    sid = setsid();
-    if(sid < 0)
-    {
-        // Return failure
-        exit(1);
-    }
-    // Change the current working directory to root.
-    chdir("/tmp/");
-    // Close stdin. stdout and stderr
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
-    // Open a log file in write mode.
-    fp = fopen ("killRadioLog.txt", "w+");
-//    while (1)
-//    {
-    //Dont block context switches, let the process sleep for some time
-//        sleep(1);
-//        fprintf(fp, "Logging info...\n");
-//        fflush(fp);
-
-    // Implement and call some function that does core work for this daemon.
-//    }
-//    fclose(fp);
+    fp = fopen ("/home/pi/BRPiPlayer/brpiplayer.log", "a+");
+    // sleep
     int sleepCount;
     if( argc == 2 ) {
         sscanf(argv[1], "%d", &sleepCount);
@@ -60,10 +35,11 @@ int main(int argc, char* argv[])
         sleepCount = 0;
     }
     sleep(sleepCount);
+    // stop radio
     char killRadio[250];
-    strcpy(killRadio, "killall radio mpg321");
+    strcpy(killRadio, "killall mpg321");
     system(killRadio);
-
+    bplog(fp, "# stopping radio");
     fclose(fp);
     return (0);
 }
