@@ -27,6 +27,7 @@ int main(int argc, char* argv[])
     // open log file
     FILE *fp= NULL;
     fp = fopen ("/home/pi/BRPiPlayer/brpiplayer.log", "a+");
+
     // sleep
     int sleepCount;
     if( argc == 2 ) {
@@ -35,11 +36,14 @@ int main(int argc, char* argv[])
         sleepCount = 0;
     }
     sleep(sleepCount);
+
     // stop radio
     char killRadio[250];
     strcpy(killRadio, "killall mpg321");
     system(killRadio);
     bplog(fp, "# stopping radio");
     fclose(fp);
+
     return (0);
+
 }
