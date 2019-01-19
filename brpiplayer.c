@@ -53,12 +53,54 @@ int bplog(FILE *fp, char logMessage[])
 
 }
 
+int setVolume(int vol)
+{
+
+    char message[400];
+    char tempstring[400];
+
+    strcpy(message, "amixer set PCM ");
+    itoa(vol, tempstring);
+    strcat(message, tempstring);
+    strcat(message, "%");
+    system(message);
+
+    return(0);
+
+}
+
+int volumeUp(int vol) {
+
+    if ((vol+2) > 100) {
+        setVolume(100);
+    } else {
+        setVolume(vol+2);
+    }
+
+    return(0);
+
+}
+
+int volumeDown(int vol) {
+
+    if ((vol-2) < 0) {
+        setVolume(0);
+    } else {
+        setVolume(vol-2);
+    }
+
+    return(0);
+
+}
+
 int main(int argc, char* argv[])
 {
 
     FILE *fp= NULL;
     fp = fopen ("/home/pi/BRPiPlayer/brpiplayer.log", "a+");
 
+    int volume;
+    volume = 80;
     char message[400];
     char tempstring[400];
     struct tm *timenow;
@@ -90,6 +132,14 @@ int main(int argc, char* argv[])
     struct input_event ev;
     radioPid = 0;
     xmmsPid = 0;
+
+    bplog(fp, "### starting brpiplayer!");
+    strcpy(message, "amixer set PCM ");
+    itoa(volume, tempstring);
+    strcat(message, tempstring);
+    strcat(message, "%");
+    bplog(fp, message);
+    system(message);
 
     while (1) {
         bytes = read(device, &ev, sizeof(ev));
@@ -162,9 +212,23 @@ int main(int argc, char* argv[])
             }
             if (ev.code == 8 && ev.value == -1) {
                 bplog(fp, "* moved wheel down");
+                strcpy(message, "volume down: ");
+                itoa((volume-2), tempstring);
+                strcat(message, tempstring);
+                bplog(fp, message);
+                volumeDown(volume);
+                volume = volume - 2;
+                if (volume < 0) volume = 0;
             }
             if (ev.code == 8 && ev.value == 1) {
                 bplog(fp, "* moved wheel up");
+                strcpy(message, "volume up: ");
+                itoa((volume+2), tempstring);
+                strcat(message, tempstring);
+                bplog(fp, message);
+                volumeUp(volume);
+                volume = volume + 2;
+                if (volume > 100) volume = 100;
             }
         }
     }
